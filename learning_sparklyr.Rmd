@@ -1,0 +1,85 @@
+---
+title: "Testing Out Sparklyr"
+author: "Ted Laderas"
+date: "6/23/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sparklyr)
+library(tidyverse)
+sc <- spark_connect(master="local")
+```
+
+This notebook mostly follows everything that is available here, with my learnings alongside it.
+
+```{r}
+library(dplyr)
+iris_tbl <- copy_to(sc, iris)
+flights_tbl <- copy_to(sc, nycflights13::flights, "flights")
+batting_tbl <- copy_to(sc, Lahman::Batting, "batting")
+dplyr::src_tbls(sc)
+```
+
+```{r}
+colnames(flights_tbl)
+```
+
+## Distribution of arrival delays
+
+Using the conventional ggplot2 functions: 
+
+```{r}
+flights_tbl %>%
+  ggplot2::ggplot() +
+  aes(x=arr_delay) +
+  geom_histogram()
+```
+
+
+```{r}
+sparklyr::
+```
+
+
+```{r}
+flights_tbl %>%
+  filter(year > 1990) %>%
+  mutate(arr_delay
+```
+
+```{r}
+partitions <- flights_tbl %>%
+  filter(year > 2000) %>%
+  mutate(time_hour = as.numeric(time_hour),
+         arr_delay = as.numeric(arr_delay)
+         ) %>%
+  sdf_partition(training = 0.8, test = 0.2, seed = 1099)
+
+partitions$training
+```
+
+```{r}
+# fit a linear model to the training dataset`
+fit <- partitions$training %>%
+  ml_linear_regression(response = "arr_delay", features = c("time_hour"))
+fit
+```
+
+## Machine Learning with Spark
+
+sparklyr provides three families of functions that you can use with Spark machine learning:
+
+- Machine learning algorithms for analyzing data (ml_*)
+- Feature transformers for manipulating individual features (ft_*)
+- Functions for manipulating Spark DataFrames (sdf_*)
+
+## MLib Workflow
+
+1. Perform SQL queries through the sparklyr dplyr interface,
+2. Use the sdf_* and ft_* family of functions to generate new columns, or partition your data set,
+3. Choose an appropriate machine learning algorithm from the ml_* family of functions to model your data,
+4. Inspect the quality of your model fit, and use it to make predictions with new data.
+5. Collect the results for visualization and further analysis in R
+
